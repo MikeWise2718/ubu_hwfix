@@ -95,24 +95,44 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nvidia.NVreg_PreserveVideoMemoryAllocat
 
 - `/etc/udev/rules.d/85-usb-power.rules` (created)
 - `/usr/NX/etc/server.cfg` (added DisconnectedSessionExpiry)
+- `/usr/lib/systemd/system-sleep/wol` (created - WoL sleep hook)
 - GNOME settings (sleep timeout)
 
 ## Documentation Updated
 
 - `usb-keyboard-resume-fix.md` - Added USB controller power management fix
 - `nvidia-power-management-hang-fix.md` (created) - GPU idle hang fix
+- `wake-on-lan-fix.md` - Added S3 sleep hook and alternative wake methods
 
 ## Outstanding Items
 
-1. **Reboot required** - NVIDIA power management parameters are in GRUB but not active in current boot
+1. ~~**Reboot required**~~ - Done, NVIDIA power management now active
 2. **Sudo NOPASSWD** - Still enabled, remember to revert when done debugging
-3. **Test sleep/wake cycle** - After reboot, verify system sleeps and wakes correctly
-4. **Monitoring logs** - Can be stopped once system is confirmed stable:
+3. ~~**Test sleep/wake cycle**~~ - Working, system sleeps and wakes with keyboard
+4. **WoL from S3** - May not work (hardware dependent), sleep hook added
+5. **Monitoring logs** - Can be stopped once system is confirmed stable:
    ```bash
    pkill -f "nvidia-smi.*csv"
    sudo pkill -f "dmesg -w"
    pkill -f "journalctl -f"
    ```
+
+## Additional Changes (12 Jan - Later)
+
+### Wake-on-LAN from S3 Suspend
+
+**Issue:** WoL works from power-off (S5) but not from suspend (S3).
+
+**Fix attempted:** Created sleep hook `/usr/lib/systemd/system-sleep/wol` to ensure WoL is set before suspend.
+
+**Status:** May still not work - WoL from S3 is hardware/BIOS dependent. The Intel I211 NIC may not support it.
+
+**Alternatives documented:**
+- Disable sleep entirely for remote access
+- RTC wake (scheduled)
+- Smart plug power cycling
+
+See: `wake-on-lan-fix.md` (updated)
 
 ## Current Boot Command Line
 
