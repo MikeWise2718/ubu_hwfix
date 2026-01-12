@@ -107,10 +107,10 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nvidia.NVreg_PreserveVideoMemoryAllocat
 
 ## Outstanding Items
 
-1. ~~**Reboot required**~~ - Done, NVIDIA power management now active
+1. **REBOOT REQUIRED** - NVIDIA power management fix NOT applied until reboot (see crash analysis below)
 2. **Sudo NOPASSWD** - Still enabled, remember to revert when done debugging
-3. ~~**Test sleep/wake cycle**~~ - Working, system sleeps and wakes with keyboard
-4. **WoL from S3** - May not work (hardware dependent), sleep hook added
+3. ~~**Test sleep/wake cycle**~~ - Need to re-test after reboot with GPU fix active
+4. **WoL from S3** - Not possible (BIOS/ACPI limitation confirmed)
 5. **Monitoring logs** - Can be stopped once system is confirmed stable:
    ```bash
    pkill -f "nvidia-smi.*csv"
@@ -213,3 +213,65 @@ BOOT_IMAGE=/boot/vmlinuz-6.8.0-90-generic root=UUID=76365766-626b-4284-ba7b-c6b5
 ```
 
 Note: `EnableS0ixPowerManagement=0` and `DynamicPowerManagement=0` are NOT active until reboot.
+
+## GPU Crash During Dinner (12 Jan ~20:45)
+
+### Incident
+
+User went to dinner for ~1 hour. Expected system to sleep and wake with keyboard. Instead, system became completely unresponsive and required power cycle.
+
+### Log Analysis
+
+The previous boot's journal shows this was **NOT a sleep/wake failure** - it was the **same GPU hang issue**:
+
+```
+Jan 12 20:39:17 NVIDIA(0): WAIT (2-S, 17, 0x19fb35, 0x00006844, 0x00006ecc)
+...
+Jan 12 20:45:07 NVIDIA(GPU-0): WAIT (2, 8, 0x8000, 0x00006844, 0x00007590)  [ERROR]
+Jan 12 20:45:19 nvidia-modeset: ERROR: GPU:0: Error while waiting for GPU progress: 0x0000c77d:0 2:0:3224:3216
+```
+
+GPU WAIT warnings started at 20:39, escalated to errors at 20:45, and the system became unresponsive. The errors repeated every 5 seconds until power cycle.
+
+### Root Cause
+
+**The NVIDIA power management fix was never applied!**
+
+The GRUB config file (`/etc/default/grub`) had the parameters:
+```
+nvidia.NVreg_EnableS0ixPowerManagement=0
+nvidia.NVreg_DynamicPowerManagement=0
+```
+
+But the **running kernel** only had:
+```
+nvidia.NVreg_PreserveVideoMemoryAllocations=1
+```
+
+The critical parameters were in the config but `update-grub` was not run after editing, so the grub.cfg didn't have them.
+
+**Note:** The BIOS update (4702→5302) likely triggered a GRUB regeneration, which would explain why the parameters disappeared from grub.cfg even if update-grub had been run earlier. Always verify `/proc/cmdline` after BIOS updates.
+
+### Fix Applied
+
+```bash
+sudo update-grub
+```
+
+Verified the parameters are now in `/boot/grub/grub.cfg`.
+
+### Status
+
+**REBOOT REQUIRED** - The GPU hang fix is now in grub.cfg but will only take effect after reboot.
+
+After reboot, verify with:
+```bash
+cat /proc/cmdline | grep -o 'nvidia\.[A-Za-z_=0-9]*'
+```
+
+Expected output:
+```
+nvidia.NVreg_PreserveVideoMemoryAllocations=1
+nvidia.NVreg_EnableS0ixPowerManagement=0
+nvidia.NVreg_DynamicPowerManagement=0
+```
