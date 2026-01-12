@@ -7,7 +7,7 @@ Fixes for sleep/wake, power management, and remote access issues on an Ubuntu 22
 - **OS:** Ubuntu 22.04 LTS (kernel 6.8.0-90-generic)
 - **CPU:** AMD Ryzen 9 5950X
 - **GPU:** NVIDIA RTX 4090 (driver 570.x)
-- **Motherboard:** ASUS (AMD chipset)
+- **Motherboard:** ASUS ROG CROSSHAIR VIII HERO (WI-FI)
 
 ## Problems Solved
 

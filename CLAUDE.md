@@ -8,7 +8,7 @@ This project documents fixes and configuration for "Luxray", an Ubuntu 22.04 wor
 - **OS:** Ubuntu 22.04, kernel 6.8.0-90-generic
 - **CPU:** AMD Ryzen 9 5950X 16-Core
 - **GPU:** NVIDIA RTX 4090 (driver 570.195.03)
-- **Motherboard:** ASUS (ALASKA BIOS)
+- **Motherboard:** ASUS ROG CROSSHAIR VIII HERO (WI-FI), BIOS 5302
 - **NICs:** Intel I211 (enp6s0), Realtek RTL8125
 
 ## Documentation

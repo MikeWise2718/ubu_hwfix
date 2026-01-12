@@ -93,7 +93,8 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nvidia.NVreg_PreserveVideoMemoryAllocat
 
 ## Files Modified Today
 
-- `/etc/udev/rules.d/85-usb-power.rules` (created)
+- `/etc/udev/rules.d/85-usb-power.rules` (created - USB controller power)
+- `/etc/udev/rules.d/81-pcie-wakeup.rules` (created - PCIe bridge wakeup)
 - `/usr/NX/etc/server.cfg` (added DisconnectedSessionExpiry)
 - `/usr/lib/systemd/system-sleep/wol` (created - WoL sleep hook)
 - GNOME settings (sleep timeout)
@@ -131,6 +132,77 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nvidia.NVreg_PreserveVideoMemoryAllocat
 - Disable sleep entirely for remote access
 - RTC wake (scheduled)
 - Smart plug power cycling
+
+### PCIe Bridge Wakeup Fix (Later Discovery)
+
+**Issue:** WoL still not working from S3 despite sleep hook.
+
+**Root cause found:** Intermediate PCIe bridges (02:00.0 and 03:05.0) had `power/wakeup` disabled, blocking the wake signal from propagating from the NIC to the CPU.
+
+**Fix:** Enable wakeup on PCIe bridges:
+```bash
+sudo sh -c 'echo enabled > /sys/bus/pci/devices/0000:02:00.0/power/wakeup'
+sudo sh -c 'echo enabled > /sys/bus/pci/devices/0000:03:05.0/power/wakeup'
+```
+
+**Persistent via:** `/etc/udev/rules.d/81-pcie-wakeup.rules`
+
+**Status:** Did not fix the issue
+
+### Final Diagnosis: BIOS/ACPI Limitation
+
+**Issue:** WoL from S3 still not working after all Linux fixes.
+
+**Root cause:** ACPI wakeup table only exposes S4 (hibernate) wake, not S3 (suspend):
+```
+GPP1    S4    *enabled   pci:0000:00:01.2
+```
+
+The BIOS doesn't advertise S3 wake capability for PCIe devices, so the kernel/driver doesn't enable PME for S3 suspend.
+
+**Solution:** Check ASUS BIOS settings:
+- Advanced → APM Configuration → "Power On By PCI-E" → Enable
+- "Wake on LAN" → Enable for S3/S4/S5
+- "ErP Ready" → Disable
+- "Deep Sleep" → Disable
+
+**Status:** Requires BIOS configuration change - cannot be fixed from Linux
+
+### BIOS Update (Later)
+
+**Action:** Updated BIOS from version 4702 (Oct 2023) to 5302 (Oct 2025)
+
+**Result:** No change - ACPI wakeup table still shows S4 only:
+```
+GPP1    S4    *enabled   pci:0000:00:01.2
+```
+
+### Realtek NIC Test (Later)
+
+**Idea:** Try the alternate onboard Realtek RTL8125 2.5GbE NIC instead of Intel I211
+
+**Configuration:**
+- Switched cable to Realtek port (enp5s0)
+- IP: 192.168.25.198
+- MAC: 50:EB:F6:B6:80:35
+- Enabled WoL via NetworkManager and ethtool
+- Enabled PCIe bridge wakeup (03:03.0 and 05:00.0)
+- Updated sleep hook for both NICs
+
+**Result:** Did not work - same ACPI S4-only limitation affects all PCIe devices on this motherboard
+
+### Conclusion
+
+WoL from S3 suspend is **not possible** on the ASUS ROG CROSSHAIR VIII HERO (WI-FI) due to:
+- BIOS/ACPI only exposes S4 (hibernate) wake, not S3 (suspend)
+- This affects ALL PCIe devices (both NICs tested)
+- BIOS update to latest version (5302) did not fix the issue
+- This is a motherboard firmware limitation that cannot be worked around from Linux
+
+**Workarounds:**
+1. Disable auto-sleep when remote access is needed
+2. Use WoL from power-off (S5) which works
+3. Increase sleep timeout to give more time before suspend
 
 See: `wake-on-lan-fix.md` (updated)
 
