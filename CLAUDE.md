@@ -23,7 +23,9 @@ All fixes and session notes are in `/docs/`:
 | `wake-on-lan-fix.md` | WoL configuration and S3 limitations |
 | `crash-monitoring-setup.md` | Background monitoring for diagnosing crashes |
 | `potential_issues_10Jan2026.md` | Known issues (ACPI, AMD P-State, thermals) |
-| `session-notes-12Jan2026.md` | Detailed session log with all changes |
+| `session-notes-12Jan2026.md` | Session log - GPU hang fix, WoL troubleshooting |
+| `session-notes-13Jan2026.md` | Session log - Claude Code status line, fonts, sleep timeout |
+| `report-13-Jan-2026.md` | **Status report** - Current issues, crash analysis, recommendations |
 
 ## Key Fixes Applied
 
@@ -48,7 +50,7 @@ nvidia.NVreg_DynamicPowerManagement=0
 
 | Setting | Value |
 |---------|-------|
-| Auto-suspend (AC) | 30 min (testing) |
+| Auto-suspend (AC) | 2 hours |
 | Screen blank | 15 min |
 
 ## Outstanding Items
@@ -59,6 +61,6 @@ nvidia.NVreg_DynamicPowerManagement=0
 
 ## When Resuming Work
 
-1. Read `docs/session-notes-12Jan2026.md` for latest status
+1. Read `docs/session-notes-13Jan2026.md` for latest status
 2. Check if any new crashes occurred (review monitoring logs)
 3. Remember sudo NOPASSWD is still enabled
